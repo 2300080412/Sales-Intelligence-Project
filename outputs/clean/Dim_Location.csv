@@ -1,0 +1,75 @@
+LocationID,City,County,StateCode,State,Latitude,Longitude,Population,Households,MedianIncome
+A100,Anaheim,Orange County,CA,California,33.83529,-117.9145,350742,99670,60752
+A101,Antioch,Contra Costa County,CA,California,38.00492,-121.80579,110542,33718,64329
+A102,Bakersfield,Kern County,CA,California,35.37329,-119.01871,373640,112439,57095
+A103,Berkeley,Alameda County,CA,California,37.87159,-122.27275,120972,45917,66237
+A104,Burbank,Los Angeles County,CA,California,34.18084,-118.30897,105319,41361,66076
+A105,Carlsbad,San Diego County,CA,California,33.15809,-117.35059,113453,42791,90597
+A106,Chula Vista,San Diego County,CA,California,32.64,-117.08417,265757,78066,65185
+A107,Clovis,Fresno County,CA,California,36.82523,-119.70292,104180,34512,62666
+A108,Concord,Contra Costa County,CA,California,37.97798,-122.03107,128667,45409,68318
+A109,Corona,Riverside County,CA,California,33.87529,-117.56644,164226,48156,74149
+A110,Costa Mesa,Orange County,CA,California,33.64113,-117.91867,113204,40908,66459
+A111,Daly City,San Mateo County,CA,California,37.70583,-122.46194,106562,31137,74449
+A112,Downey,Los Angeles County,CA,California,33.94001,-118.13257,114219,32738,62897
+A113,East Los Angeles,Los Angeles County,CA,California,34.0239,-118.17202,127610,31400,38766
+A114,El Cajon,San Diego County,CA,California,32.79477,-116.96253,103679,32564,45925
+A115,Elk Grove,Sacramento County,CA,California,38.4088,-121.37162,166913,49316,79487
+A116,El Monte,Los Angeles County,CA,California,34.06862,-118.02757,116732,30752,38085
+A117,Escondido,San Diego County,CA,California,33.11921,-117.08642,151451,45041,50899
+A118,Fairfield,Solano County,CA,California,38.24936,-122.03997,112970,34623,67364
+A119,Fontana,San Bernardino County,CA,California,34.09223,-117.43505,207460,49975,64824
+A120,Fremont,Alameda County,CA,California,37.54827,-121.98857,232206,72684,105355
+A121,Fresno,Fresno County,CA,California,36.74773,-119.77237,520052,161914,41531
+A122,Fullerton,Orange County,CA,California,33.87029,-117.92534,140847,45031,65974
+A123,Garden Grove,Orange County,CA,California,33.77391,-117.94145,175393,46998,58449
+A124,Glendale,Los Angeles County,CA,California,34.14251,-118.25508,201020,71498,52574
+A125,Hayward,Alameda County,CA,California,37.66882,-122.0808,158289,46713,65096
+A126,Huntington Beach,Orange County,CA,California,33.6603,-117.99923,201899,74460,83252
+A127,Inglewood,Los Angeles County,CA,California,33.96168,-118.35313,111666,36667,42044
+A128,Irvine,Orange County,CA,California,33.66946,-117.82311,256927,87235,92278
+A129,Jurupa Valley,Riverside County,CA,California,34.00259,-117.46761,100314,24839,57749
+A130,Lancaster,Los Angeles County,CA,California,34.69804,-118.13674,161103,47427,47225
+A131,Long Beach,Los Angeles County,CA,California,33.76696,-118.18923,474140,164406,52783
+A132,Los Angeles,Los Angeles County,CA,California,34.05223,-118.24368,3971883,1342761,50205
+A133,Modesto,Stanislaus County,CA,California,37.6391,-120.99688,211266,70481,48577
+A134,Moreno Valley,Riverside County,CA,California,33.93752,-117.23059,204198,51693,54590
+A135,Murrieta,Riverside County,CA,California,33.55391,-117.21392,109830,32685,74610
+A136,Norwalk,Los Angeles County,CA,California,33.90224,-118.08173,107140,27225,59756
+A137,Oakland,Alameda County,CA,California,37.80437,-122.2708,419267,158424,54618
+A138,Oceanside,San Diego County,CA,California,33.19587,-117.37948,175691,60493,57703
+A139,Ontario,San Bernardino County,CA,California,34.06334,-117.65089,171214,47375,54114
+A140,Orange,Orange County,CA,California,33.78779,-117.85311,140992,42680,78513
+A141,Oxnard,Ventura County,CA,California,34.1975,-119.17705,207254,50815,60621
+A142,Palmdale,Los Angeles County,CA,California,34.57943,-118.11646,158351,42720,52392
+A143,Pasadena,Los Angeles County,CA,California,34.14778,-118.14452,142250,54536,72402
+A144,Pomona,Los Angeles County,CA,California,34.05529,-117.75228,153266,39378,49186
+A145,Rancho Cucamonga,San Bernardino County,CA,California,34.1064,-117.59311,175236,55240,77396
+A146,Rialto,San Bernardino County,CA,California,34.1064,-117.37032,103132,25199,50971
+A147,Richmond,Contra Costa County,CA,California,37.93576,-122.34775,109708,36973,55102
+A148,Riverside,Riverside County,CA,California,33.95333,-117.39611,322424,91267,57196
+A149,Roseville,Placer County,CA,California,38.75212,-121.28801,130269,46547,75867
+A150,Sacramento,Sacramento County,CA,California,38.58157,-121.4944,490712,178185,50739
+A151,Salinas,Monterey County,CA,California,36.67774,-121.6555,157380,40892,49840
+A152,San Bernardino,San Bernardino County,CA,California,34.10834,-117.28977,216108,57580,37047
+A153,San Buenaventura (Ventura),Ventura County,CA,California,34.26778,-119.25421,109708,41029,66995
+A154,San Diego,San Diego County,CA,California,32.71533,-117.15726,1394928,485091,66116
+A155,San Francisco,San Francisco County,CA,California,37.775,-122.41944,864816,353287,81294
+A156,San Jose,Santa Clara County,CA,California,37.33939,-121.89496,1026908,314297,84647
+A157,San Mateo,San Mateo County,CA,California,37.56299,-122.32553,103536,37861,90208
+A158,Santa Ana,Orange County,CA,California,33.74557,-117.86783,335400,74757,52253
+A159,Santa Clara,Santa Clara County,CA,California,37.35411,-121.95524,126215,43433,98914
+A160,Santa Clarita,Los Angeles County,CA,California,34.39166,-118.54259,182371,59247,83554
+A161,Santa Maria,Santa Barbara County,CA,California,34.95303,-120.43572,105093,27365,50433
+A162,Santa Rosa,Sonoma County,CA,California,38.44047,-122.71443,174972,64088,61050
+A163,Simi Valley,Ventura County,CA,California,34.26945,-118.78148,126788,41972,90210
+A164,Stockton,San Joaquin County,CA,California,37.9577,-121.29078,305658,92440,44797
+A165,Sunnyvale,Santa Clara County,CA,California,37.36883,-122.03635,151754,55094,105401
+A166,Temecula,Riverside County,CA,California,33.49364,-117.14836,112011,32835,79925
+A167,Thousand Oaks,Ventura County,CA,California,34.17056,-118.8375,129339,45912,100946
+A168,Torrance,Los Angeles County,CA,California,33.83585,-118.34063,148475,55377,79549
+A169,Vallejo,Solano County,CA,California,38.10409,-122.25664,121253,41216,57028
+A170,Victorville,San Bernardino County,CA,California,34.53611,-117.29116,122225,31886,45894
+A171,Visalia,Tulare County,CA,California,36.33023,-119.29206,130104,41730,52157
+A172,Vista,San Diego County,CA,California,33.20004,-117.24254,100890,30451,50601
+A173,West Covina,Los Angeles County,CA,California,34.06862,-117.93895,108484,30816,69189

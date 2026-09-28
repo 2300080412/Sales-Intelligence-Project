@@ -1,0 +1,151 @@
+// ============================================================
+// DAX - create Dim_Date and Fact_Budget as CALCULATED TABLES
+// (Modeling > New table), then all measures in a "_Measures" table
+// (Enter Data > empty table named _Measures, then New measure)
+// ============================================================
+
+// ---------- Dim_Date ----------
+// Ends at the LAST SALES DATE (15-Mar-2023) so 2023 YTD vs 2022 YTD is like-for-like.
+// After creating: Table tools > Mark as date table > Date
+// Sort:  MonthName by MonthNumber | MonthShort by MonthNumber | YearMonth by YearMonthSort
+Dim_Date =
+ADDCOLUMNS (
+    CALENDAR ( DATE ( 2021, 1, 1 ), MAX ( Fact_Sales[OrderDate] ) ),
+    "Year",          YEAR ( [Date] ),
+    "Quarter",       "Q" & QUARTER ( [Date] ),
+    "YearQuarter",   YEAR ( [Date] ) & "-Q" & QUARTER ( [Date] ),
+    "MonthNumber",   MONTH ( [Date] ),
+    "MonthName",     FORMAT ( [Date], "MMMM" ),
+    "MonthShort",    FORMAT ( [Date], "MMM" ),
+    "YearMonth",     FORMAT ( [Date], "YYYY-MM" ),
+    "YearMonthSort", YEAR ( [Date] ) * 100 + MONTH ( [Date] ),
+    "WeekOfYear",    WEEKNUM ( [Date], 2 ),
+    "Day",           DAY ( [Date] ),
+    "DayName",       FORMAT ( [Date], "ddd" ),
+    "DayOfWeekNo",   WEEKDAY ( [Date], 2 )
+)
+
+// ---------- Fact_Budget ----------
+// Annual budget x monthly allocation, spread evenly over the days of each month,
+// so partial months (Mar-2023) are pro-rated automatically.
+// Relationships: Fact_Budget[Date] -> Dim_Date[Date] (many:1), Fact_Budget[LocationID] -> Dim_Location (many:1)
+// ASSUMPTION: the same annual budget applies to every year (sheet has no year column).
+Fact_Budget =
+SELECTCOLUMNS (
+    CROSSJOIN (
+        SELECTCOLUMNS ( Budget_Annual, "bLoc", Budget_Annual[LocationID], "bAnnual", Budget_Annual[AnnualBudget] ),
+        SELECTCOLUMNS ( Dim_Date, "bDate", Dim_Date[Date], "bMonth", Dim_Date[MonthNumber],
+                        "bDays", DAY ( EOMONTH ( Dim_Date[Date], 0 ) ) )
+    ),
+    "Date",        [bDate],
+    "LocationID",  [bLoc],
+    "DailyBudget", [bAnnual]
+                   * LOOKUPVALUE ( Budget_Season[Allocation], Budget_Season[MonthNumber], [bMonth] )
+                   / [bDays]
+)
+
+
+// ============================================================
+// MEASURES  (display folder in brackets)
+// CALCULATED COLUMN vs MEASURE:
+//   LineSales (column, Power Query) = row-by-row, stored in the model, fixed.
+//   Measures = evaluated at query time in the current filter context.
+// ============================================================
+
+// ----- [1 Sales] -----
+Total Sales      = SUM ( Fact_Sales[LineSales] )
+Total Orders     = DISTINCTCOUNT ( Fact_Sales[OrderID] )
+Total Quantity   = SUM ( Fact_Sales[Quantity] )
+Active Customers = DISTINCTCOUNT ( Fact_Sales[CustomerID] )
+Average Order Value  = DIVIDE ( [Total Sales], [Total Orders] )
+Average Selling Price = DIVIDE ( [Total Sales], [Total Quantity] )      // weighted by quantity
+Avg Line Price   = AVERAGEX ( Fact_Sales, Fact_Sales[UnitPrice] )        // simple average per order line
+
+// ----- [2 Profit] -----
+Total Cost   = SUMX ( Fact_Sales, Fact_Sales[Quantity] * RELATED ( Dim_Product[UnitCost] ) )
+Gross Profit = [Total Sales] - [Total Cost]
+Gross Margin % = DIVIDE ( [Gross Profit], [Total Sales] )
+Revenue per Unit = DIVIDE ( [Total Sales], [Total Quantity] )
+Profit per Unit  = DIVIDE ( [Gross Profit], [Total Quantity] )
+
+// ----- [3 Time Intelligence] -----
+CY Sales = [Total Sales]
+PY Sales = CALCULATE ( [Total Sales], SAMEPERIODLASTYEAR ( Dim_Date[Date] ) )
+PY Sales (DATEADD) = CALCULATE ( [Total Sales], DATEADD ( Dim_Date[Date], -1, YEAR ) )
+YoY Sales Growth = IF ( [PY Sales] <> 0, [CY Sales] - [PY Sales] )
+YoY Growth % = DIVIDE ( [CY Sales] - [PY Sales], [PY Sales] )
+MTD Sales = TOTALMTD ( [Total Sales], Dim_Date[Date] )
+YTD Sales = TOTALYTD ( [Total Sales], Dim_Date[Date] )
+PY YTD Sales = CALCULATE ( [YTD Sales], SAMEPERIODLASTYEAR ( Dim_Date[Date] ) )
+YTD vs PY YTD % = DIVIDE ( [YTD Sales] - [PY YTD Sales], [PY YTD Sales] )
+
+// ----- [4 Budget] -----
+Budget = SUM ( Fact_Budget[DailyBudget] )
+Actual Sales = [Total Sales]
+Budget Variance   = [Actual Sales] - [Budget]
+Budget Variance % = DIVIDE ( [Budget Variance], [Budget] )
+Budget Achievement % = DIVIDE ( [Actual Sales], [Budget] )
+Actual vs Budget Status =
+    SWITCH ( TRUE (),
+        ISBLANK ( [Budget] ), "No budget",
+        [Budget Achievement %] >= 1, "Met / Exceeded",
+        [Budget Achievement %] >= 0.9, "Near target",
+        "Missed" )
+Locations Above Budget =
+    COUNTROWS ( FILTER ( VALUES ( Dim_Location[LocationID] ), [Budget Achievement %] >= 1 ) )
+Locations Below Budget =
+    COUNTROWS ( FILTER ( VALUES ( Dim_Location[LocationID] ), [Budget Achievement %] < 1 ) )
+
+// ----- [5 Contribution / ranking / Pareto] -----
+Sales % of Total       = DIVIDE ( [Total Sales], CALCULATE ( [Total Sales], ALLSELECTED () ) )
+Product Sales Share    = DIVIDE ( [Total Sales], CALCULATE ( [Total Sales], ALLSELECTED ( Dim_Product ) ) )
+Customer Sales Share   = DIVIDE ( [Total Sales], CALCULATE ( [Total Sales], ALLSELECTED ( Dim_Customer ) ) )
+Salesperson Sales Share = DIVIDE ( [Total Sales], CALCULATE ( [Total Sales], ALLSELECTED ( Dim_Salesperson ) ) )
+
+Product Rank = RANKX ( ALLSELECTED ( Dim_Product[ProductName] ), [Total Sales], , DESC, Dense )
+Profit Rank  = RANKX ( ALLSELECTED ( Dim_Product[ProductName] ), [Gross Profit], , DESC, Dense )
+Customer Rank = RANKX ( ALLSELECTED ( Dim_Customer[CustomerLabel] ), [Total Sales], , DESC, Dense )
+Salesperson Rank = RANKX ( ALLSELECTED ( Dim_Salesperson[SalespersonName] ), [Total Sales], , DESC, Dense )
+Location Rank = RANKX ( ALLSELECTED ( Dim_Location[City] ), [Total Sales], , DESC, Dense )
+
+// Dynamic Top N: create parameter  Modeling > New parameter > Numeric range 5-25 step 5 (default 10) -> table 'TopN'
+Top N Value = SELECTEDVALUE ( TopN[TopN Value], 10 )
+Top N Product Sales =
+    VAR n = [Top N Value]
+    RETURN IF ( [Product Rank] <= n, [Total Sales] )
+Top 10 Customer Share =
+    DIVIDE (
+        SUMX ( TOPN ( 10, ALL ( Dim_Customer[CustomerID] ), [Total Sales] ), [Total Sales] ),
+        CALCULATE ( [Total Sales], ALL ( Dim_Customer ) )
+    )
+Cumulative Product % (Pareto) =
+    VAR cur  = [Total Sales]
+    VAR prods = ALLSELECTED ( Dim_Product[ProductName] )
+    RETURN DIVIDE (
+        SUMX ( FILTER ( prods, [Total Sales] >= cur ), [Total Sales] ),
+        CALCULATE ( [Total Sales], prods ) )
+
+// ----- [6 Trend analytics] -----
+Running Total Sales =
+    CALCULATE ( [Total Sales], FILTER ( ALL ( Dim_Date[Date] ), Dim_Date[Date] <= MAX ( Dim_Date[Date] ) ) )
+Sales 30-Day Moving Avg =
+    AVERAGEX ( DATESINPERIOD ( Dim_Date[Date], MAX ( Dim_Date[Date] ), -30, DAY ), [Total Sales] )
+Sales 3-Month Moving Avg =
+    AVERAGEX ( DATESINPERIOD ( Dim_Date[Date], MAX ( Dim_Date[Date] ), -3, MONTH ),
+               CALCULATE ( [Total Sales] ) )   // use on a month-level axis
+Daily Avg Sales = AVERAGEX ( VALUES ( Dim_Date[Date] ), [Total Sales] )
+Is Spike Day = IF ( [Total Sales] > 2 * CALCULATE ( [Daily Avg Sales], ALLSELECTED ( Dim_Date ) ), 1, 0 )
+
+// ----- [7 Geography] -----
+Sales per 1K Residents = DIVIDE ( [Total Sales], SUM ( Dim_Location[Population] ) ) * 1000
+Sales per Household    = DIVIDE ( [Total Sales], SUM ( Dim_Location[Households] ) )
+Locations Sold In      = DISTINCTCOUNT ( Fact_Sales[LocationID] )
+
+// ----- [8 Titles and formatting] -----
+Title - Trend = "Sales trend | " & SELECTEDVALUE ( Dim_Date[Year], "All years" )
+Title - Product = "Top " & [Top N Value] & " products by sales"
+Title - Budget = "Budget achievement: " & FORMAT ( [Budget Achievement %], "0%" )
+YoY Colour = IF ( [YoY Growth %] >= 0, "#1D9A8A", "#E4572E" )
+Margin Colour =
+    SWITCH ( TRUE (), [Gross Margin %] >= 0.40, "#1D9A8A", [Gross Margin %] >= 0.25, "#F2A541", "#E4572E" )
+KPI Arrow = IF ( [YoY Growth %] >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( [YoY Growth %] ), "0.0%" )

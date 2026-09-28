@@ -1,0 +1,119 @@
+// ============================================================
+// POWER QUERY (M) - create each block as a separate query
+// Home > Get Data > Blank Query > Advanced Editor > paste
+// First create a Parameter query named  FilePath  (Text)
+// e.g.  "C:\Users\you\Documents\PBI_Training_Assignment_Dataset.xlsx"
+// Then in Query Settings turn OFF "Enable load" for: fnLoadSales, Raw_Products
+// ============================================================
+
+
+// ---------- fnLoadSales  (function, do not load) ----------
+(SheetName as text) as table =>
+let
+    Src      = Excel.Workbook(File.Contents(FilePath), null, true),
+    Sheet    = Src{[Item = SheetName, Kind = "Sheet"]}[Data],
+    Promoted = Table.PromoteHeaders(Sheet, [PromoteAllScalars = true]),
+    Typed    = Table.TransformColumnTypes(Promoted, {
+                 {"Order ID", type text}, {"Product ID", type text},
+                 {"Location ID", type text}, {"Sales Person ID", type text},
+                 {"Customer ID", type text}, {"Order Date", type date},
+                 {"Quantity", Int64.Type}, {"Price", Currency.Type}})
+in
+    Typed
+
+
+// ---------- Fact_Sales ----------
+let
+    Appended = Table.Combine({fnLoadSales("2021 Sales"), fnLoadSales("2022 Sales"), fnLoadSales("2023 Sales")}),
+    Renamed  = Table.RenameColumns(Appended, {
+                 {"Order ID", "OrderID"}, {"Product ID", "ProductID"},
+                 {"Location ID", "LocationID"}, {"Sales Person ID", "SalespersonID"},
+                 {"Customer ID", "CustomerID"}, {"Order Date", "OrderDate"},
+                 {"Price", "UnitPrice"}}),
+    NoBlanks = Table.SelectRows(Renamed, each [OrderID] <> null and [OrderDate] <> null and [Quantity] <> null and [UnitPrice] <> null),
+    NoDupes  = Table.Distinct(NoBlanks, {"OrderID"}),
+    // CALCULATED COLUMN (row-level, stored): line revenue
+    LineSales = Table.AddColumn(NoDupes, "LineSales", each [Quantity] * [UnitPrice], Currency.Type)
+in
+    LineSales
+
+
+// ---------- Dim_Product ----------
+// Dropped: Original Sale Price, Discount, Taxes (Discount = 0 everywhere,
+// Original Sale Price = Current Price for all 101 products; Taxes not used)
+let
+    Src   = Excel.Workbook(File.Contents(FilePath), null, true){[Item = "Products", Kind = "Sheet"]}[Data],
+    Hdr   = Table.PromoteHeaders(Src, [PromoteAllScalars = true]),
+    Keep  = Table.SelectColumns(Hdr, {"Product ID", "Product Name", "Cost", "Current Price"}),
+    Ren   = Table.RenameColumns(Keep, {{"Product ID", "ProductID"}, {"Product Name", "ProductName"}, {"Cost", "UnitCost"}, {"Current Price", "ListPrice"}}),
+    Typed = Table.TransformColumnTypes(Ren, {{"ProductID", type text}, {"ProductName", type text}, {"UnitCost", Currency.Type}, {"ListPrice", Currency.Type}}),
+    // numeric sort so "Product 2" comes before "Product 10"
+    SortNo = Table.AddColumn(Typed, "ProductSort", each Number.From(Text.AfterDelimiter([ProductName], " ")), Int64.Type),
+    UnitMargin = Table.AddColumn(SortNo, "UnitMarginPct", each ([ListPrice] - [UnitCost]) / [ListPrice], Percentage.Type)
+in
+    UnitMargin
+
+
+// ---------- Dim_Location ----------
+// Note: every row has State = California, so "State" has no analytical
+// value. County is the useful geographic level (22 counties).
+let
+    Src   = Excel.Workbook(File.Contents(FilePath), null, true){[Item = "Locations", Kind = "Sheet"]}[Data],
+    Hdr   = Table.PromoteHeaders(Src, [PromoteAllScalars = true]),
+    Keep  = Table.SelectColumns(Hdr, {"Location ID", "Name", "County", "State Code", "State", "Latitude", "Longitude", "Population", "Households", "Median Income"}),
+    Ren   = Table.RenameColumns(Keep, {{"Location ID", "LocationID"}, {"Name", "City"}, {"State Code", "StateCode"}, {"Median Income", "MedianIncome"}}),
+    Typed = Table.TransformColumnTypes(Ren, {{"LocationID", type text}, {"City", type text}, {"County", type text}, {"State", type text},
+              {"Latitude", type number}, {"Longitude", type number}, {"Population", Int64.Type}, {"Households", Int64.Type}, {"MedianIncome", Int64.Type}}),
+    Tier  = Table.AddColumn(Typed, "PopulationTier", each if [Population] >= 500000 then "Large (500K+)" else if [Population] >= 150000 then "Mid (150-500K)" else "Small (<150K)", type text)
+in
+    Tier
+
+
+// ---------- Dim_Customer ----------
+// WARNING: 801 Customer IDs but only 509 distinct names -> names are NOT unique.
+// Always use CustomerLabel (name + ID) in visuals, never the bare name.
+let
+    Src   = Excel.Workbook(File.Contents(FilePath), null, true){[Item = "Customers", Kind = "Sheet"]}[Data],
+    Hdr   = Table.PromoteHeaders(Src, [PromoteAllScalars = true]),
+    Ren   = Table.RenameColumns(Hdr, {{"Customer ID", "CustomerID"}, {"Customer Name", "CustomerName"}}),
+    Typed = Table.TransformColumnTypes(Ren, {{"CustomerID", type text}, {"CustomerName", type text}}),
+    Label = Table.AddColumn(Typed, "CustomerLabel", each [CustomerName] & " (" & [CustomerID] & ")", type text)
+in
+    Label
+
+
+// ---------- Dim_Salesperson ----------
+let
+    Src   = Excel.Workbook(File.Contents(FilePath), null, true){[Item = "Sales People", Kind = "Sheet"]}[Data],
+    Hdr   = Table.PromoteHeaders(Src, [PromoteAllScalars = true]),
+    Ren   = Table.RenameColumns(Hdr, {{"Salesperson ID", "SalespersonID"}, {"Salesperson Name", "SalespersonName"}}),
+    Typed = Table.TransformColumnTypes(Ren, {{"SalespersonID", type text}, {"SalespersonName", type text}})
+in
+    Typed
+
+
+// ---------- Budget_Annual ----------
+// Budgeting sheet is 3 tables stacked side by side: cols A-C = annual budget
+// by location, cols D-E = empty junk, cols F-H = monthly seasonality.
+// Only 74 of the 97 budget IDs exist in Dim_Location; the other 23 are dropped.
+let
+    Src   = Excel.Workbook(File.Contents(FilePath), null, true){[Item = "Budgeting", Kind = "Sheet"]}[Data],
+    Hdr   = Table.PromoteHeaders(Src, [PromoteAllScalars = true]),
+    Keep  = Table.SelectColumns(Hdr, {"Location ID", "Name", "Revenue"}),
+    Ren   = Table.RenameColumns(Keep, {{"Location ID", "LocationID"}, {"Name", "BudgetLabel"}, {"Revenue", "AnnualBudget"}}),
+    Typed = Table.TransformColumnTypes(Ren, {{"LocationID", type text}, {"BudgetLabel", type text}, {"AnnualBudget", Currency.Type}}),
+    Valid = Table.SelectRows(Typed, each [LocationID] <> null and List.Contains(Dim_Location[LocationID], [LocationID]))
+in
+    Valid
+
+
+// ---------- Budget_Season ----------
+let
+    Src   = Excel.Workbook(File.Contents(FilePath), null, true){[Item = "Budgeting", Kind = "Sheet"]}[Data],
+    Hdr   = Table.PromoteHeaders(Src, [PromoteAllScalars = true]),
+    Keep  = Table.SelectColumns(Hdr, {"Month", "Month Number", "Monthly Allocation2"}),
+    Rows  = Table.SelectRows(Keep, each [Month Number] <> null),
+    Ren   = Table.RenameColumns(Rows, {{"Month", "MonthShort"}, {"Month Number", "MonthNumber"}, {"Monthly Allocation2", "Allocation"}}),
+    Typed = Table.TransformColumnTypes(Ren, {{"MonthShort", type text}, {"MonthNumber", Int64.Type}, {"Allocation", Percentage.Type}})
+in
+    Typed
